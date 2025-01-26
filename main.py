@@ -1,7 +1,7 @@
 import cv2
 from modules.detection import detect_face_and_pose
 from modules.recognition import recognize_gesture, recognize_body_emotion
-from modules.models_loader import load_models
+from modules.models_loader import load_models, load_encodings_from_file
 import warnings
 
 
@@ -31,10 +31,12 @@ while True:
 
     # Detect face, pose, and draw landmarks
     frame = detect_face_and_pose(frame, rgb_frame)
-
+    
     # Recognize gesture, body pose, and emotion
     recognize_gesture(rgb_frame, frame, gesture_recognizer, start_x, start_y, line_spacing, font_scale)
     recognize_body_emotion(rgb_frame, frame, body_language_model, emotion_detection_model, start_x, start_y, line_spacing, font_scale)
+
+    # frame = gesture_detector.process_frame(frame)
 
     # Display the frame
     cv2.imshow("Face, Gesture, Emotion, and Pose Recognition", frame)

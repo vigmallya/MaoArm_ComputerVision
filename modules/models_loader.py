@@ -24,3 +24,15 @@ def load_models():
         emotion_detection_model = pickle.load(f)
 
     return gesture_recognizer, body_language_model, emotion_detection_model
+
+# Function to load encodings from the specified folder and file
+def load_encodings_from_file(folder_path='models', file_name='stored_face_encodings.pkl'):
+    file_path = os.path.join(folder_path, file_name)
+    try:
+        with open(file_path, 'rb') as file:
+            encodings = pickle.load(file)
+        # print(f"Encodings loaded from {file_path}")
+        return encodings
+    except FileNotFoundError:
+        print(f"No existing file found at {file_path}. Starting fresh.")
+        return []  # Return an empty list if the file doesn't exist
