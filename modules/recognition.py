@@ -2,6 +2,32 @@ import cv2
 import pandas as pd
 import numpy as np
 import mediapipe as mp
+import face_recognition
+import pickle
+import os
+from modules.models_loader import load_encodings_from_file
+
+
+
+
+# if ret:
+#     imgS = cv2.resize(frame, (0, 0), None, 0.25, 0.25)
+#     imgS = cv2.cvtColor(imgS, cv2.COLOR_BGR2RGB)
+#     faceCurFrame = face_recognition.face_locations(imgS)
+#     storedEncodings = face_recognition.face_encodings(imgS, faceCurFrame)
+
+# Function to save encodings to a pickle file
+def save_encodings_to_file(encodings, folder_path='models', file_name='stored_face_encodings.pkl'):
+    # Ensure the folder exists
+    os.makedirs(folder_path, exist_ok=True)
+    file_path = os.path.join(folder_path, file_name)
+
+    with open(file_path, 'wb') as file:
+        pickle.dump(encodings, file)
+    print(f"Encodings saved to {file_name}")
+
+# Initialize the variable to store the encoding
+storedEncodings = load_encodings_from_file()
 
 # Initialize MediaPipe components
 mp_drawing = mp.solutions.drawing_utils
@@ -22,8 +48,29 @@ def recognize_gesture(rgb_frame, frame, gesture_recognizer, start_x, start_y, li
             top_gesture = recognition_result.gestures[0][0]
             gesture_name = top_gesture.category_name
             confidence = top_gesture.score
+            if gesture_name == "ILoveYou":
+                # Resize and convert frame
+                imgS = cv2.resize(frame, (0, 0), None, 0.25, 0.25)
+
+                # Detect and encode faces in the current frame
+                faceCurFrame = face_recognition.face_locations(imgS)
+                encodeCurFrame = face_recognition.face_encodings(imgS, faceCurFrame)
+
+                if encodeCurFrame:  # Ensure at least one face encoding is found
+                    new_encoding = encodeCurFrame[0] 
+                    # Check if this encoding matches any in the stored_encodings
+                    matches = face_recognition.compare_faces(storedEncodings, new_encoding, tolerance=0.6)
+
+                    if not any(matches):  # If no matches found, store the new encoding
+                        storedEncodings.append(new_encoding)
+                        print("New face encoding stored!")
+                        save_encodings_to_file(storedEncodings, folder_path='models')
+                    else:
+                        print("Face already recorded.")
+
         else:
-            hand_name, gesture_name = None, None
+            hand_name, gesture_name = "None", "None"
+            # pass
 
         cv2.putText(frame, f"Hand : {hand_name} {gesture_name}", (start_x, start_y + 4 * line_spacing),
                         cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 255, 0), 2)

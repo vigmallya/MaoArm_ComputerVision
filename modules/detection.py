@@ -1,5 +1,8 @@
 import mediapipe as mp
 import cv2
+import face_recognition
+from modules.models_loader import load_encodings_from_file
+import numpy as np 
 
 # Initialize MediaPipe components
 mp_face_detection = mp.solutions.face_detection
@@ -16,8 +19,11 @@ pose_landmark_style = mp_drawing.DrawingSpec(color=(0, 255, 0), thickness=3, cir
 hand_landmark_style = mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=3, circle_radius=3)
 connection_style = mp_drawing.DrawingSpec(color=(0, 255, 0), thickness=2)
 
+
+
 def detect_face_and_pose(frame, rgb_frame):
-   
+    #detect offerder face encoding:
+    offender_face_encodings = load_encodings_from_file()
     # Detect face and pose landmarks and draw them on the frame.
     
     # Face Detection
@@ -29,7 +35,30 @@ def detect_face_and_pose(frame, rgb_frame):
             ih, iw, _ = frame.shape
             bbox = int(bboxC.xmin * iw), int(bboxC.ymin * ih), int(bboxC.width * iw), int(bboxC.height * ih)
             confidence_score = int(detection.score[0] * 100)
-            cv2.putText(frame, f'{confidence_score}%', (bbox[0], bbox[1] - 10),
+
+            imgS = cv2.resize(frame, (0, 0), None, 0.25, 0.25)
+
+            # Detect and encode faces in the current frame
+            faceCurFrame = face_recognition.face_locations(imgS)
+            encodeCurFrame = face_recognition.face_encodings(imgS, faceCurFrame)
+            offender_detected = False
+            if encodeCurFrame:  # Ensure at least one face encoding is found
+                new_encoding = encodeCurFrame[0] 
+                # Check if this encoding matches any in the stored_encodings
+                matches = face_recognition.compare_faces(offender_face_encodings, new_encoding, tolerance=0.6)
+
+                if not any(matches):  # If no matches found, store the new encoding
+                    # print("New face encoding stored!")
+                    offender_detected = False                    
+                else:
+                    offender_detected = True
+                    # print("offender Detected.")
+            
+            formatted_confidence = f'{confidence_score:.2f}'  # Two decimal places
+
+            # Dynamic text
+            label_text = f'{formatted_confidence}% {"Offender" if offender_detected else "New Face"}'
+            cv2.putText(frame, label_text, (bbox[0], bbox[1] - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
     else:
         print("No face detected.")
